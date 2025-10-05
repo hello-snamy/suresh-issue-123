@@ -1,12 +1,20 @@
-
+# backend:
+#   name: github
+#   repo: alberto56/suresh-issue-123
+#   branch: main
+#   base_url: https://auth.static.dcycle.com
+#   auth_endpoint: auth/github/alberto56
+# media_folder: 'docs/media'
+# public_folder: "/media"
 backend:
   name: github
-  repo: alberto56/suresh-issue-123
+  repo: hello-snamy/suresh-issue-123
   branch: main
-  base_url: https://auth.static.dcycle.com
-  auth_endpoint: auth/github/alberto56
-media_folder: 'docs/media'
-public_folder: "/media"
+  base_url: https://suresh-issue-82.dcycleproject.org
+  auth_endpoint: /auth-app/github
+media_folder: "static/uploads"
+public_folder: "/uploads"
+
 collections:
   - name: 'blog'
     create: true
