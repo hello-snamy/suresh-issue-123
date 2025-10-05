@@ -13,10 +13,10 @@
     <script>
       // Optionally, if you need custom logic for the message event or other actions:
       window.addEventListener("message", (event) => {
-        if (event.origin !== "https://your-gateway-origin.com") {
-          console.error("Received message from an untrusted origin:", event.origin);
-          return;
-        }
+//        if (event.origin !== "*") {
+//          console.error("Received message from an untrusted origin:", event.origin);
+//          return;
+//        }
 
         const message = event.data;
         if (message.type === "authorization_response") {
