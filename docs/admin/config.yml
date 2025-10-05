@@ -8,7 +8,7 @@
 # public_folder: "/media"
 backend:
   name: github
-  repo: hello-snamy/suresh-issue-123
+  # repo: hello-snamy/suresh-issue-123
   branch: main
   base_url: https://suresh-issue-82.dcycleproject.org
   auth_endpoint: /auth-app/github
