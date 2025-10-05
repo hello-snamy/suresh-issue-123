@@ -9,5 +9,22 @@
   <body>
     <!-- Include the script that builds the page and powers Decap CMS -->
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+
+    <script>
+      // Optionally, if you need custom logic for the message event or other actions:
+      window.addEventListener("message", (event) => {
+        if (event.origin !== "https://your-gateway-origin.com") {
+          console.error("Received message from an untrusted origin:", event.origin);
+          return;
+        }
+
+        const message = event.data;
+        if (message.type === "authorization_response") {
+          const { token, provider } = message;
+          // Do something with the token, e.g., save it, authenticate the user, etc.
+          console.log(`Received token for ${provider}:`, token);
+        }
+      });
+    </script>
   </body>
 </html>
