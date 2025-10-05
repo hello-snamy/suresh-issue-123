@@ -1,0 +1,19 @@
+backend:
+  name: github
+  repo: hello-snamy/suresh-issue-123
+  branch: main
+  base_url: https://suresh-issue-82.dcycleproject.org
+  auth_endpoint: /auth-app/github
+media_folder: "static/uploads"
+public_folder: "/uploads"
+
+collections:
+  - name: "blog"
+    label: "Blog"
+    folder: "content/blog"
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - {label: "Title", name: "title", widget: "string"}
+      - {label: "Date", name: "date", widget: "datetime"}
+      - {label: "Body", name: "body", widget: "markdown"}
