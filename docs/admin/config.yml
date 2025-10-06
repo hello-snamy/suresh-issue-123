@@ -6,12 +6,21 @@
 #   auth_endpoint: auth/github/alberto56
 # media_folder: 'docs/media'
 # public_folder: "/media"
+
+# backend:
+#   name: github
+#   # repo: hello-snamy/suresh-issue-123
+#   branch: main
+#   base_url: https://suresh-issue-82.dcycleproject.org
+#   auth_endpoint: /auth-app/github
 backend:
   name: github
-  # repo: hello-snamy/suresh-issue-123
+  repo: "hello-snamy/suresh-issue-123"
   branch: main
-  base_url: https://suresh-issue-82.dcycleproject.org
-  auth_endpoint: /auth-app/github
+  auth_scope: "repo"
+  oauth: true
+  login: true
+
 media_folder: "static/uploads"
 public_folder: "/uploads"
 
