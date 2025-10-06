@@ -1,13 +1,19 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="noindex" />
-    <title>Content Manager</title>
-  </head>
-  <body>
-    <!-- Include the script that builds the page and powers Decap CMS -->
-    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
-  </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decap CMS Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@netlifycms/core@2.11.0/dist/cms.css">
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/@netlifycms/core@2.11.0/dist/cms.js"></script>
+    <script>
+        CMS.init({
+            config: '/admin/config.yml',
+            media_folder: "static/img",  // Media storage folder
+            public_folder: "/img"  // Public media folder path
+        });
+    </script>
+</body>
 </html>
