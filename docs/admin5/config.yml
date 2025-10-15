@@ -4,8 +4,12 @@ backend:
   branch: main
 
   # 👇 Custom Auth Gateway (your own backend)
+  # base_url: http://173.249.49.45:9050
+  # api_root: /cms
+
+  # 👇 Custom Auth Gateway (your own backend)
   base_url: http://173.249.49.45:9050
-  api_root: /cms
+  auth_endpoint: /auth/github
 
 media_folder: "static/uploads"
 public_folder: "/uploads"
