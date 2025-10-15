@@ -4,31 +4,8 @@ backend:
   branch: main
 
   # 👇 Custom Auth Gateway (your own backend)
-  base_url: https://suresh-issue-82.dcycleproject.org/
-  auth_endpoint: /auth-app/github
-  app_id: "Ov23li4SIOh01pO0MB1c"
-# backend:
-#   name: github
-#   repo: alberto56/suresh-issue-123
-#   branch: main
-#   base_url: https://auth.static.dcycle.com
-#   auth_endpoint: auth/github/alberto56
-# media_folder: 'docs/media'
-# public_folder: "/media"
-
-# backend:
-#   name: github
-#   # repo: hello-snamy/suresh-issue-123
-#   branch: main
-#   base_url: https://suresh-issue-82.dcycleproject.org
-# #   auth_endpoint: /auth-app/github
-# backend:
-#   name: github
-#   repo: "hello-snamy/suresh-issue-123"
-#   branch: main
-#   auth_scope: "repo"
-#   oauth: true
-#   login: true
+  base_url: http://173.249.49.45:9050
+  api_root: /cms
 
 media_folder: "static/uploads"
 public_folder: "/uploads"
