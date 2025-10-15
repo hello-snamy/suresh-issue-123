@@ -5,7 +5,7 @@ backend:
 
   # 👇 Custom Auth Gateway (your own backend)
   base_url: http://173.249.49.45:9050
-  api_root: /cms
+  api_root: /auth
 
 media_folder: "static/uploads"
 public_folder: "/uploads"
