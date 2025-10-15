@@ -8,5 +8,21 @@
   <body>
     <!-- Include the script that builds the page and powers Decap CMS -->
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <script>
+      window.addEventListener('message', function(event) {
+        // Only accept messages from the authorized origin
+        // if (event.origin !== 'https://hello-snamy.github.io') {
+        //   return;  // Ignore messages from untrusted sources
+        // }
+      
+        // Handle the message (expected structure: 'authorization:github:success')
+        if (event.data && event.data.startsWith('authorization:github:success')) {
+          const content = JSON.parse(event.data.replace('authorization:github:success:', ''));
+          console.log('GitHub Authorization Success:', content);
+      
+          // You can now use `content` (installationToken, provider) to perform your next steps
+        }
+      });
+    </script>
   </body>
 </html>
