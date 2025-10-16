@@ -1,11 +1,16 @@
 backend:
-  name: github
-  repo: hello-snamy/suresh-issue-123
+  name: proxy
+  proxy_url: http://173.249.49.45:9050/cms/proxy
   branch: main
 
+# backend:
+#   name: github
+#   repo: hello-snamy/suresh-issue-123
+#   branch: main
+
   # 👇 Custom Auth Gateway (your own backend)
-  base_url: http://173.249.49.45:9050
-  auth_endpoint: /auth/github
+  # base_url: http://173.249.49.45:9050
+  # auth_endpoint: /auth/github
 
 media_folder: "static/uploads"
 public_folder: "/uploads"
