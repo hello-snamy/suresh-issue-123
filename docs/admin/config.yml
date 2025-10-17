@@ -2,6 +2,7 @@ backend:
   name: proxy
   proxy_url: http://173.249.49.45:9050/cms/proxy
   branch: main
+  repo: hello-snamy/suresh-issue-123  # Repository where content is stored
 
 # backend:
 #   name: github
