@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Content Manager</title>
+  <title>Content Manager - Suresh Issue 123</title>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #f6f8fa; }
@@ -11,48 +11,38 @@
     .card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .btn { background: #2ea44f; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
     .btn:hover { background: #2c974b; }
+    .logout-btn { background: #dc3545; margin-bottom: 20px; }
     .hidden { display: none; }
-    .user-info { background: #e9ecef; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    .repo-info { background: #e9ecef; padding: 10px; border-radius: 4px; margin: 10px 0; }
   </style>
 </head>
 <body>
   <div class="container">
     <div id="login-card" class="card">
       <h2>Content Manager</h2>
-      <p>Manage content for this site</p>
-      <p class="user-info" id="repo-info">Repository: Detecting...</p>
+      <p>Manage content for Suresh Issue 123</p>
+      <div class="repo-info">
+        <strong>Repository:</strong> hello-snamy/suresh-issue-123
+      </div>
       <button class="btn" onclick="login()">Login with GitHub</button>
     </div>
     
     <div id="cms-container" class="hidden">
-      <button class="btn" onclick="logout()" style="background: #dc3545; margin-bottom: 20px;">Logout</button>
+      <button class="btn logout-btn" onclick="logout()">Logout</button>
       <div id="nc-root"></div>
     </div>
   </div>
 
   <script>
     const BACKEND_URL = 'http://173.249.49.45:9050';
+    const REPO_OWNER = 'hello-snamy';
+    const REPO_NAME = 'suresh-issue-123';
+    const REPO_FULL_NAME = 'hello-snamy/suresh-issue-123';
+    
     let githubToken = null;
-    let currentRepo = null;
-
-    // Auto-detect repository from current domain
-    function getCurrentRepo() {
-      const host = window.location.hostname;
-      const accountName = host.replace('.github.io', '');
-      return {
-        owner: "hello-snamy",
-        name: `hello-snamy.github.io`,
-        fullName: `hello-snamy.github.io/suresh-issue-123`
-      };
-    }
 
     async function checkAuth() {
       try {
-        currentRepo = getCurrentRepo();
-        console.log("---- currentRepo ----");
-        console.log(currentRepo);
-        document.getElementById('repo-info').textContent = `Repository: ${currentRepo.fullName}`;
-
         const response = await fetch(`${BACKEND_URL}/auth/status`, {
           credentials: 'include'
         });
@@ -92,15 +82,13 @@
       document.getElementById('login-card').classList.add('hidden');
       document.getElementById('cms-container').classList.remove('hidden');
 
-      // Initialize Decap CMS with the actual GitHub backend
-      // using the token we got from our auth proxy
+      // Initialize Decap CMS with hardcoded repo
       window.CMS.init({
         config: {
           backend: {
             name: 'github',
-            repo: "hello-snamy/suresh-issue-123",
-            branch: 'main',
-            base_url: 'https://api.github.com'
+            repo: REPO_FULL_NAME,
+            branch: 'main'
           },
           load_config_file: false,
           media_folder: "images/uploads",
@@ -117,25 +105,16 @@
                 { label: "Publish Date", name: "date", widget: "datetime" },
                 { label: "Body", name: "body", widget: "markdown" }
               ]
-            },
-            {
-              name: "pages",
-              label: "Pages",
-              folder: "pages", 
-              create: true,
-              slug: "{{slug}}",
-              fields: [
-                { label: "Title", name: "title", widget: "string" },
-                { label: "Body", name: "body", widget: "markdown" }
-              ]
             }
           ]
         }
       });
 
-      // Override Decap CMS authentication to use our token
-      const originalAuthenticate = window.CMS.getBackend('github').authenticate;
-      window.CMS.getBackend('github').authenticate = function() {
+      // Override authentication to use our token
+      const gitHubBackend = window.CMS.getBackend('github');
+      const originalAuthenticate = gitHubBackend.authenticate;
+      
+      gitHubBackend.authenticate = function() {
         return Promise.resolve({ token: githubToken });
       };
     }
@@ -148,11 +127,11 @@
     // Handle auth callback
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auth') === 'success') {
-      window.history.replaceState({}, document.title, 'https://hello-snamy.github.io/suresh-issue-123/admin/');
+      window.history.replaceState({}, document.title, '/admin/');
       setTimeout(checkAuth, 1000);
     } else if (urlParams.get('auth') === 'error') {
       alert('Authentication failed. Please try again.');
-      window.history.replaceState({}, document.title, 'https://hello-snamy.github.io/suresh-issue-123/admin/');
+      window.history.replaceState({}, document.title, '/admin/');
     }
 
     document.addEventListener('DOMContentLoaded', checkAuth);
