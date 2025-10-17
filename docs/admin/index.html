@@ -4,133 +4,156 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Content Manager</title>
-  
-  <!-- Decap CMS -->
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
-  
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #f6f8fa; }
+    .container { max-width: 600px; margin: 50px auto; text-align: center; }
+    .card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .btn { background: #2ea44f; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    .btn:hover { background: #2c974b; }
+    .hidden { display: none; }
+    .user-info { background: #e9ecef; padding: 10px; border-radius: 4px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="login-card" class="card">
+      <h2>Content Manager</h2>
+      <p>Manage content for this site</p>
+      <p class="user-info" id="repo-info">Repository: Detecting...</p>
+      <button class="btn" onclick="login()">Login with GitHub</button>
+    </div>
+    
+    <div id="cms-container" class="hidden">
+      <button class="btn" onclick="logout()" style="background: #dc3545; margin-bottom: 20px;">Logout</button>
+      <div id="nc-root"></div>
+    </div>
+  </div>
+
   <script>
     const BACKEND_URL = 'http://173.249.49.45:9050';
-    
+    let githubToken = null;
+    let currentRepo = null;
+
+    // Auto-detect repository from current domain
+    function getCurrentRepo() {
+      const host = window.location.hostname;
+      const accountName = host.replace('.github.io', '');
+      return {
+        owner: accountName,
+        name: `${accountName}.github.io`,
+        fullName: `${accountName}/${accountName}.github.io`
+      };
+    }
+
     async function checkAuth() {
       try {
-        showMessage('Checking authentication...', 'info');
-        
+        currentRepo = getCurrentRepo();
+        document.getElementById('repo-info').textContent = `Repository: ${currentRepo.fullName}`;
+
         const response = await fetch(`${BACKEND_URL}/auth/status`, {
           credentials: 'include'
         });
+        
         const data = await response.json();
         
         if (data.authenticated) {
-          showMessage(`Authenticated as ${data.user}`, 'success');
-          await verifyRepositoryAccess();
-          initCMS();
-          document.getElementById('login-section').style.display = 'none';
-          document.getElementById('cms-section').style.display = 'block';
+          githubToken = data.token;
+          initializeCMS();
         } else {
-          showMessage('Please login to continue', 'info');
-          document.getElementById('login-section').style.display = 'block';
-          document.getElementById('cms-section').style.display = 'none';
+          showLogin();
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        showMessage('Authentication service unavailable', 'error');
-        document.getElementById('login-section').style.display = 'block';
+        showLogin();
       }
     }
-    
-    async function verifyRepositoryAccess() {
-      try {
-        const repoOwner = 'hello-snamy'; // Change to your content repo owner
-        const repoName = 'suresh-issue-123';     // Change to your content repo name
-        
-        const response = await fetch(`${BACKEND_URL}/api/repo/verify?owner=${repoOwner}&repo=${repoName}`, {
-          credentials: 'include'
-        });
-        
-        const result = await response.json();
-        if (!result.accessible) {
-          showMessage('No access to content repository. Please check permissions.', 'error');
-        }
-      } catch (error) {
-        console.error('Repo verification failed:', error);
-      }
-    }
-    
+
     function login() {
       window.location.href = `${BACKEND_URL}/auth/github`;
     }
-    
+
     async function logout() {
       try {
         await fetch(`${BACKEND_URL}/auth/logout`, {
           method: 'POST',
           credentials: 'include'
         });
+        githubToken = null;
         window.location.reload();
       } catch (error) {
         console.error('Logout failed:', error);
       }
     }
-    
-    function initCMS() {
-      // Decap CMS will automatically initialize with our proxy backend
-      console.log('Decap CMS initialized');
+
+    function initializeCMS() {
+      document.getElementById('login-card').classList.add('hidden');
+      document.getElementById('cms-container').classList.remove('hidden');
+
+      // Initialize Decap CMS with the actual GitHub backend
+      // using the token we got from our auth proxy
+      window.CMS.init({
+        config: {
+          backend: {
+            name: 'github',
+            repo: currentRepo.fullName,
+            branch: 'main',
+            base_url: 'https://api.github.com'
+          },
+          load_config_file: false,
+          media_folder: "images/uploads",
+          public_folder: "/images/uploads",
+          collections: [
+            {
+              name: "blog",
+              label: "Blog Posts",
+              folder: "posts",
+              create: true,
+              slug: "{{slug}}",
+              fields: [
+                { label: "Title", name: "title", widget: "string" },
+                { label: "Publish Date", name: "date", widget: "datetime" },
+                { label: "Body", name: "body", widget: "markdown" }
+              ]
+            },
+            {
+              name: "pages",
+              label: "Pages",
+              folder: "pages", 
+              create: true,
+              slug: "{{slug}}",
+              fields: [
+                { label: "Title", name: "title", widget: "string" },
+                { label: "Body", name: "body", widget: "markdown" }
+              ]
+            }
+          ]
+        }
+      });
+
+      // Override Decap CMS authentication to use our token
+      const originalAuthenticate = window.CMS.getBackend('github').authenticate;
+      window.CMS.getBackend('github').authenticate = function() {
+        return Promise.resolve({ token: githubToken });
+      };
     }
-    
-    function showMessage(message, type) {
-      const messageDiv = document.getElementById('message');
-      messageDiv.textContent = message;
-      messageDiv.className = `message ${type}`;
-      messageDiv.style.display = 'block';
-      
-      setTimeout(() => {
-        messageDiv.style.display = 'none';
-      }, 5000);
+
+    function showLogin() {
+      document.getElementById('login-card').classList.remove('hidden');
+      document.getElementById('cms-container').classList.add('hidden');
     }
-    
+
     // Handle auth callback
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auth') === 'success') {
-      window.history.replaceState({}, document.title, window.location.pathname);
-      showMessage('Successfully authenticated!', 'success');
+      window.history.replaceState({}, document.title, '/admin/');
       setTimeout(checkAuth, 1000);
     } else if (urlParams.get('auth') === 'error') {
-      const message = urlParams.get('message') || 'Authentication failed';
-      showMessage(`Authentication error: ${message}`, 'error');
-      window.history.replaceState({}, document.title, window.location.pathname);
+      alert('Authentication failed. Please try again.');
+      window.history.replaceState({}, document.title, '/admin/');
     }
-    
+
     document.addEventListener('DOMContentLoaded', checkAuth);
   </script>
-  
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f6f8fa; }
-    .container { max-width: 800px; margin: 0 auto; }
-    .login-section { text-align: center; padding: 50px 20px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .login-btn { background: #24292e; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background 0.2s; }
-    .login-btn:hover { background: #0366d6; }
-    .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-bottom: 20px; }
-    .message { padding: 12px; border-radius: 4px; margin-bottom: 20px; display: none; }
-    .message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .message.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div id="message" class="message"></div>
-    
-    <div id="login-section" class="login-section" style="display: none;">
-      <h2>Content Manager Login</h2>
-      <p>This CMS manages content stored in the backend account repository.</p>
-      <p>You'll need write access to the content repository.</p>
-      <button class="login-btn" onclick="login()">Login with GitHub</button>
-    </div>
-    
-    <div id="cms-section" style="display: none;">
-      <button class="logout-btn" onclick="logout()">Logout</button>
-      <div id="nc-root"></div>
-    </div>
-  </div>
 </body>
 </html>
