@@ -1,8 +1,8 @@
 backend:
   name: github
-  repo: auto-detected  # Will be set dynamically
+  repo: hello-snamy/suresh-issue-123
   branch: main
-  auth_type: token  # Use token-based auth
+  auth_type: token
 
 media_folder: "images/uploads"
 public_folder: "/images/uploads"
@@ -17,38 +17,3 @@ collections:
       - { label: "Title", name: "title", widget: "string" }
       - { label: "Publish Date", name: "date", widget: "datetime" }
       - { label: "Body", name: "body", widget: "markdown" }
-  - name: "pages"
-    label: "Pages"
-    folder: "pages"
-    create: true
-    slug: "{{slug}}"
-    fields:
-      - { label: "Title", name: "title", widget: "string" }
-      - { label: "Body", name: "body", widget: "markdown" }
-
-# backend:
-#   name: proxy
-#   proxy_url: http://173.249.49.45:9050/cms/proxy
-#   branch: main
-#   repo: hello-snamy/suresh-issue-123  # Repository where content is stored
-
-# backend:
-#   name: github
-#   repo: hello-snamy/suresh-issue-123
-#   branch: main
-
-  # 👇 Custom Auth Gateway (your own backend)
-  # base_url: http://173.249.49.45:9050
-  # auth_endpoint: /auth/github
-
-# media_folder: "static/uploads"
-# public_folder: "/uploads"
-
-# collections:
-#   - name: 'blog'
-#     create: true
-#     label: 'Articles'
-#     folder: 'docs/jekyll_blogposts/_posts/'
-#     slug: '{{year}}-{{month}}-{{day}}-{{slug}}'
-#     fields:
-#       - { label: 'Title', name: 'title', widget: 'string' }
