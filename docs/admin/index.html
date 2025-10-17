@@ -49,6 +49,8 @@
     async function checkAuth() {
       try {
         currentRepo = getCurrentRepo();
+        console.log("---- currentRepo ----");
+        console.log(currentRepo);
         document.getElementById('repo-info').textContent = `Repository: ${currentRepo.fullName}`;
 
         const response = await fetch(`${BACKEND_URL}/auth/status`, {
