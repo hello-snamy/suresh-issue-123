@@ -12,10 +12,15 @@
     .btn { background: #2ea44f; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
     .btn:hover { background: #2c974b; }
     .hidden { display: none; }
+    .loading { background: #fff3cd; color: #856404; }
+    .success { background: #d1edff; color: #004085; }
+    .error { background: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
   <div class="container">
+    <div id="status"></div>
+    
     <div id="login-card" class="card">
       <h2>Content Manager</h2>
       <p>Manage content for your site</p>
@@ -31,71 +36,130 @@
     const BACKEND_URL = 'http://173.249.49.45:9050';
     const REPO = 'hello-snamy/suresh-issue-123';
     let githubToken = null;
+    let popup = null;
+
+    function showStatus(message, type = 'loading') {
+      const statusEl = document.getElementById('status');
+      statusEl.innerHTML = message;
+      statusEl.className = type;
+      statusEl.style.display = 'block';
+    }
+
+    function hideStatus() {
+      document.getElementById('status').style.display = 'none';
+    }
 
     // Handle messages from popup
     window.addEventListener('message', function(event) {
+      console.log('Received message:', event.data);
+      console.log('Origin:', event.origin);
+      
       if (event.data === 'authorizing:github') {
-        console.log('Authorization in progress...');
+        showStatus('Authorization in progress...', 'loading');
       }
       else if (event.data.startsWith('authorization:github:success:')) {
         const data = JSON.parse(event.data.replace('authorization:github:success:', ''));
         githubToken = data.token;
         console.log('Token received:', githubToken);
-        initializeCMS();
+        showStatus('Authentication successful! Loading CMS...', 'success');
+        setTimeout(initializeCMS, 1000);
       }
       else if (event.data === 'authorization:github:error') {
-        alert('Authentication failed. Please try again.');
+        showStatus('Authentication failed. Please try again.', 'error');
+      }
+      else {
+        console.log('Unknown message:', event.data);
       }
     });
 
     function login() {
+      showStatus('Opening GitHub authentication...', 'loading');
+      
       // Open auth in popup window
-      const popup = window.open(
+      popup = window.open(
         `${BACKEND_URL}/auth/github`,
         'github-auth',
-        'width=600,height=600'
+        'width=600,height=700,scrollbars=yes'
       );
+
+      // Check if popup was blocked
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        showStatus('Popup was blocked. Please allow popups for this site.', 'error');
+        return;
+      }
+
+      // Check popup status every 500ms
+      const popupCheck = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(popupCheck);
+          if (!githubToken) {
+            showStatus('Authentication was canceled.', 'error');
+          }
+        }
+      }, 500);
     }
 
     function initializeCMS() {
+      console.log('Initializing CMS with token:', githubToken);
+      
+      if (!githubToken) {
+        showStatus('No token available. Please try again.', 'error');
+        return;
+      }
+
       document.getElementById('login-card').classList.add('hidden');
       document.getElementById('cms-container').classList.remove('hidden');
+      hideStatus();
 
-      // Initialize Decap CMS
-      window.CMS.init({
-        config: {
-          backend: {
-            name: 'github',
-            repo: REPO,
-            branch: 'main'
-          },
-          load_config_file: false,
-          media_folder: "images/uploads",
-          public_folder: "/images/uploads",
-          collections: [
-            {
-              name: "blog",
-              label: "Blog Posts",
-              folder: "posts",
-              create: true,
-              slug: "{{slug}}",
-              fields: [
-                { label: "Title", name: "title", widget: "string" },
-                { label: "Publish Date", name: "date", widget: "datetime" },
-                { label: "Body", name: "body", widget: "markdown" }
-              ]
-            }
-          ]
+      try {
+        // Initialize Decap CMS
+        window.CMS.init({
+          config: {
+            backend: {
+              name: 'github',
+              repo: REPO,
+              branch: 'main'
+            },
+            load_config_file: false,
+            media_folder: "images/uploads",
+            public_folder: "/images/uploads",
+            collections: [
+              {
+                name: "blog",
+                label: "Blog Posts",
+                folder: "posts",
+                create: true,
+                slug: "{{slug}}",
+                fields: [
+                  { label: "Title", name: "title", widget: "string" },
+                  { label: "Publish Date", name: "date", widget: "datetime" },
+                  { label: "Body", name: "body", widget: "markdown" }
+                ]
+              }
+            ]
+          }
+        });
+
+        // Override authentication to use our token
+        const gitHubBackend = window.CMS.getBackend('github');
+        if (gitHubBackend && gitHubBackend.authenticate) {
+          gitHubBackend.authenticate = function() {
+            console.log('Providing token to Decap CMS');
+            return Promise.resolve({ token: githubToken });
+          };
         }
-      });
 
-      // Override authentication to use our token
-      const gitHubBackend = window.CMS.getBackend('github');
-      const originalAuthenticate = gitHubBackend.authenticate;
-      
-      gitHubBackend.authenticate = function() {
-        return Promise.resolve({ token: githubToken });
-      };
+        console.log('Decap CMS initialized successfully');
+        
+      } catch (error) {
+        console.error('CMS initialization error:', error);
+        showStatus('Failed to initialize CMS: ' + error.message, 'error');
+      }
+    }
+
+    // Check if we already have a token (for page refresh)
+    if (githubToken) {
+      initializeCMS();
     }
   </script>
 </body>
