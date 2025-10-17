@@ -40,9 +40,9 @@
       const host = window.location.hostname;
       const accountName = host.replace('.github.io', '');
       return {
-        owner: accountName,
-        name: `${accountName}.github.io`,
-        fullName: `${accountName}/${accountName}.github.io`
+        owner: "hello-snamy",
+        name: `hello-snamy.github.io`,
+        fullName: `hello-snamy.github.io/suresh-issue-123`
       };
     }
 
@@ -96,7 +96,7 @@
         config: {
           backend: {
             name: 'github',
-            repo: currentRepo.fullName,
+            repo: "hello-snamy/suresh-issue-123",
             branch: 'main',
             base_url: 'https://api.github.com'
           },
