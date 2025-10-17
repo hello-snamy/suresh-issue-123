@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   
   <script>
-    const BACKEND_URL = 'https://your-backend.herokuapp.com';
+    const BACKEND_URL = 'http://173.249.49.45:9050';
     
     async function checkAuth() {
       try {
@@ -40,8 +40,8 @@
     
     async function verifyRepositoryAccess() {
       try {
-        const repoOwner = 'backend-account-name'; // Change to your content repo owner
-        const repoName = 'content-repo-name';     // Change to your content repo name
+        const repoOwner = 'hello-snamy'; // Change to your content repo owner
+        const repoName = 'suresh-issue-123';     // Change to your content repo name
         
         const response = await fetch(`${BACKEND_URL}/api/repo/verify?owner=${repoOwner}&repo=${repoName}`, {
           credentials: 'include'
