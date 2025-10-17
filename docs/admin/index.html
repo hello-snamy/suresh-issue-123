@@ -185,9 +185,9 @@
         window.history.replaceState({}, document.title, window.location.pathname);
         
         // Check auth status after a brief delay to ensure session is set
-        setTimeout(() => {
-          checkAuth();
-        }, 500);
+        // setTimeout(() => {
+        //   checkAuth();
+        // }, 500);
         
       } else if (authStatus === 'error') {
         debug('Auth error detected');
@@ -196,7 +196,7 @@
         showLogin();
       } else {
         debug('No auth parameters, checking current auth status');
-        checkAuth();
+        // checkAuth();
       }
     });
 
