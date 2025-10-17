@@ -2,18 +2,24 @@ backend:
   name: github
   repo: hello-snamy/suresh-issue-123
   branch: main
-  # auth_type: token  # Remove this line if present
+  # base_url: https://suresh-issue-82.dcycleproject.org
+  # auth_endpoint: /auth-app/github
 
-media_folder: "images/uploads"
-public_folder: "/images/uploads"
+  # 👇 Custom Auth Gateway (your own backend)
+  base_url: http://173.249.49.45:9050
+  auth_endpoint: /auth/github
+
+
+media_folder: "static/uploads"
+public_folder: "/uploads"
 
 collections:
   - name: "blog"
-    label: "Blog Posts"
-    folder: "posts"
+    label: "Blog"
+    folder: "content/blog"
     create: true
     slug: "{{slug}}"
     fields:
-      - { label: "Title", name: "title", widget: "string" }
-      - { label: "Publish Date", name: "date", widget: "datetime" }
-      - { label: "Body", name: "body", widget: "markdown" }
+      - {label: "Title", name: "title", widget: "string"}
+      - {label: "Date", name: "date", widget: "datetime"}
+      - {label: "Body", name: "body", widget: "markdown"}
