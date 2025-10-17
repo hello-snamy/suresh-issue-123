@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Content Manager</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #f6f8fa; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+    .btn { background: #2ea44f; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    .btn:hover { background: #2c974b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Content Manager Login</h2>
+    <p>Manage content for suresh-issue-123</p>
+    <button class="btn" onclick="login()">Login with GitHub</button>
+  </div>
+
+  <script>
+    const BACKEND_URL = 'http://173.249.49.45:9050';
+
+    function login() {
+      // Open auth in popup window
+      const popup = window.open(
+        `${BACKEND_URL}/auth/github`,
+        'github-auth',
+        'width=600,height=700'
+      );
+    }
+
+    // Handle messages from popup
+    window.addEventListener('message', function(event) {
+      if (event.data.startsWith('authorization:github:success:')) {
+        const data = JSON.parse(event.data.replace('authorization:github:success:', ''));
+        
+        // Store token in localStorage and redirect to main CMS
+        localStorage.setItem('githubToken', data.token);
+        window.location.href = 'index.html'; // Redirect to main Decap CMS
+      }
+      else if (event.data === 'authorization:github:error') {
+        alert('Authentication failed. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>
