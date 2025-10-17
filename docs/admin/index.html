@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Content Manager - Suresh Issue 123</title>
+  <title>Content Manager</title>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #f6f8fa; }
@@ -11,207 +11,91 @@
     .card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .btn { background: #2ea44f; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
     .btn:hover { background: #2c974b; }
-    .logout-btn { background: #dc3545; margin-bottom: 20px; }
     .hidden { display: none; }
-    .repo-info { background: #e9ecef; padding: 10px; border-radius: 4px; margin: 10px 0; }
-    #debug { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; text-align: left; font-size: 12px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div id="debug"></div>
-    
     <div id="login-card" class="card">
       <h2>Content Manager</h2>
-      <p>Manage content for Suresh Issue 123</p>
-      <div class="repo-info">
-        <strong>Repository:</strong> hello-snamy/suresh-issue-123
-      </div>
+      <p>Manage content for your site</p>
       <button class="btn" onclick="login()">Login with GitHub</button>
     </div>
     
     <div id="cms-container" class="hidden">
-      <button class="btn logout-btn" onclick="logout()">Logout</button>
       <div id="nc-root"></div>
     </div>
   </div>
 
   <script>
     const BACKEND_URL = 'http://173.249.49.45:9050';
-    const REPO_FULL_NAME = 'hello-snamy/suresh-issue-123';
-    
+    const REPO = 'hello-snamy/suresh-issue-123';
     let githubToken = null;
-    let cmsInitialized = false;
 
-    function debug(message) {
-      console.log(message);
-      const debugEl = document.getElementById('debug');
-      if (debugEl) {
-        debugEl.innerHTML += `<div>${new Date().toISOString()}: ${message}</div>`;
+    // Handle messages from popup
+    window.addEventListener('message', function(event) {
+      if (event.data === 'authorizing:github') {
+        console.log('Authorization in progress...');
       }
-    }
-
-    async function checkAuth() {
-      try {
-        debug('Checking auth status...');
-        const response = await fetch(`${BACKEND_URL}/auth/status`, {
-          credentials: 'include',
-          mode: 'cors'
-        });
-        
-        debug(`Auth status response: ${response.status}`);
-        
-        const data = await response.json();
-        debug(`Auth data: ${JSON.stringify(data)}`);
-        
-        if (data.authenticated && data.token) {
-          githubToken = data.token;
-          debug('User is authenticated, token received');
-          await initializeCMS();
-        } else {
-          debug('User is not authenticated');
-          showLogin();
-        }
-      } catch (error) {
-        debug(`Auth check failed: ${error.message}`);
-        showLogin();
+      else if (event.data.startsWith('authorization:github:success:')) {
+        const data = JSON.parse(event.data.replace('authorization:github:success:', ''));
+        githubToken = data.token;
+        console.log('Token received:', githubToken);
+        initializeCMS();
       }
-    }
-
-    function login() {
-      debug('Starting login process...');
-      window.location.href = `${BACKEND_URL}/auth/github`;
-    }
-
-    async function logout() {
-      try {
-        await fetch(`${BACKEND_URL}/auth/logout`, {
-          method: 'POST',
-          credentials: 'include',
-          mode: 'cors'
-        });
-        githubToken = null;
-        cmsInitialized = false;
-        window.location.reload();
-      } catch (error) {
-        debug(`Logout failed: ${error.message}`);
-      }
-    }
-
-    function initializeCMS() {
-      debug('Starting CMS initialization...');
-      
-      if (cmsInitialized) {
-        debug('CMS already initialized, skipping');
-        return;
-      }
-
-      // Show CMS container, hide login
-      document.getElementById('login-card').classList.add('hidden');
-      document.getElementById('cms-container').classList.remove('hidden');
-
-      debug('DOM updated, initializing Decap CMS...');
-
-      try {
-        // Initialize Decap CMS
-        window.CMS.init({
-          config: {
-            backend: {
-              name: 'github',
-              repo: REPO_FULL_NAME,
-              branch: 'main'
-            },
-            load_config_file: false,
-            media_folder: "images/uploads",
-            public_folder: "/images/uploads",
-            collections: [
-              {
-                name: "blog",
-                label: "Blog Posts",
-                folder: "posts",
-                create: true,
-                slug: "{{slug}}",
-                fields: [
-                  { label: "Title", name: "title", widget: "string" },
-                  { label: "Publish Date", name: "date", widget: "datetime" },
-                  { label: "Body", name: "body", widget: "markdown" }
-                ]
-              }
-            ]
-          }
-        });
-
-        debug('Decap CMS init called successfully');
-
-        // Override authentication
-        const gitHubBackend = window.CMS.getBackend('github');
-        if (gitHubBackend && gitHubBackend.authenticate) {
-          const originalAuthenticate = gitHubBackend.authenticate;
-          gitHubBackend.authenticate = function() {
-            debug('Using custom token for authentication');
-            return Promise.resolve({ token: githubToken });
-          };
-          debug('Authentication override set');
-        }
-
-        cmsInitialized = true;
-        debug('CMS initialization completed successfully');
-
-      } catch (error) {
-        debug(`CMS initialization error: ${error.message}`);
-        debug(`Error stack: ${error.stack}`);
-      }
-    }
-
-    function showLogin() {
-      debug('Showing login screen');
-      document.getElementById('login-card').classList.remove('hidden');
-      document.getElementById('cms-container').classList.add('hidden');
-    }
-
-    // Main initialization
-    document.addEventListener('DOMContentLoaded', function() {
-      debug('DOM fully loaded');
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const authStatus = urlParams.get('auth');
-      
-      debug(`URL auth parameter: ${authStatus}`);
-      debug(`Full URL: ${window.location.href}`);
-
-      if (authStatus === 'success') {
-        debug('Auth success detected, clearing URL and checking auth status');
-        // Clear the auth parameter from URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        // Check auth status after a brief delay to ensure session is set
-        // setTimeout(() => {
-        //   checkAuth();
-        // }, 500);
-        
-      } else if (authStatus === 'error') {
-        debug('Auth error detected');
+      else if (event.data === 'authorization:github:error') {
         alert('Authentication failed. Please try again.');
-        window.history.replaceState({}, document.title, window.location.pathname);
-        showLogin();
-      } else {
-        debug('No auth parameters, checking current auth status');
-        // checkAuth();
       }
     });
 
-    // Fallback in case DOMContentLoaded already fired
-    if (document.readyState === 'interactive' || document.readyState === 'complete') {
-      debug('Document already ready, starting initialization');
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('auth') === 'success') {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        // setTimeout(() => {
-        //   checkAuth();
-        // }, 500);
-      } else {
-        // checkAuth();
-      }
+    function login() {
+      // Open auth in popup window
+      const popup = window.open(
+        `${BACKEND_URL}/auth/github`,
+        'github-auth',
+        'width=600,height=600'
+      );
+    }
+
+    function initializeCMS() {
+      document.getElementById('login-card').classList.add('hidden');
+      document.getElementById('cms-container').classList.remove('hidden');
+
+      // Initialize Decap CMS
+      window.CMS.init({
+        config: {
+          backend: {
+            name: 'github',
+            repo: REPO,
+            branch: 'main'
+          },
+          load_config_file: false,
+          media_folder: "images/uploads",
+          public_folder: "/images/uploads",
+          collections: [
+            {
+              name: "blog",
+              label: "Blog Posts",
+              folder: "posts",
+              create: true,
+              slug: "{{slug}}",
+              fields: [
+                { label: "Title", name: "title", widget: "string" },
+                { label: "Publish Date", name: "date", widget: "datetime" },
+                { label: "Body", name: "body", widget: "markdown" }
+              ]
+            }
+          ]
+        }
+      });
+
+      // Override authentication to use our token
+      const gitHubBackend = window.CMS.getBackend('github');
+      const originalAuthenticate = gitHubBackend.authenticate;
+      
+      gitHubBackend.authenticate = function() {
+        return Promise.resolve({ token: githubToken });
+      };
     }
   </script>
 </body>
