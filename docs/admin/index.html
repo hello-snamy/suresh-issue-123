@@ -12,6 +12,7 @@
     .btn { background: #2ea44f; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
     .btn:hover { background: #2c974b; }
     .hidden { display: none; }
+    #status { margin: 20px 0; padding: 10px; border-radius: 4px; }
     .loading { background: #fff3cd; color: #856404; }
     .success { background: #d1edff; color: #004085; }
     .error { background: #f8d7da; color: #721c24; }
@@ -37,6 +38,7 @@
     const REPO = 'hello-snamy/suresh-issue-123';
     let githubToken = null;
     let popup = null;
+    let cmsReady = false;
 
     function showStatus(message, type = 'loading') {
       const statusEl = document.getElementById('status');
@@ -49,8 +51,25 @@
       document.getElementById('status').style.display = 'none';
     }
 
+    // Wait for Decap CMS to load
+    function waitForCMS() {
+      return new Promise((resolve) => {
+        const checkCMS = () => {
+          if (window.CMS && window.CMS.init) {
+            console.log('Decap CMS loaded successfully');
+            cmsReady = true;
+            resolve();
+          } else {
+            console.log('Waiting for Decap CMS to load...');
+            setTimeout(checkCMS, 100);
+          }
+        };
+        checkCMS();
+      });
+    }
+
     // Handle messages from popup
-    window.addEventListener('message', function(event) {
+    window.addEventListener('message', async function(event) {
       console.log('Received message:', event.data);
       console.log('Origin:', event.origin);
       
@@ -62,13 +81,13 @@
         githubToken = data.token;
         console.log('Token received:', githubToken);
         showStatus('Authentication successful! Loading CMS...', 'success');
-        setTimeout(initializeCMS, 1000);
+        
+        // Wait for CMS to be ready, then initialize
+        await waitForCMS();
+        initializeCMS();
       }
       else if (event.data === 'authorization:github:error') {
         showStatus('Authentication failed. Please try again.', 'error');
-      }
-      else {
-        console.log('Unknown message:', event.data);
       }
     });
 
@@ -104,6 +123,11 @@
       
       if (!githubToken) {
         showStatus('No token available. Please try again.', 'error');
+        return;
+      }
+
+      if (!window.CMS || !window.CMS.init) {
+        showStatus('CMS not loaded yet. Please wait...', 'error');
         return;
       }
 
@@ -157,10 +181,16 @@
       }
     }
 
-    // Check if we already have a token (for page refresh)
-    if (githubToken) {
-      initializeCMS();
-    }
+    // Initialize when page loads if we already have a token
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log('DOM loaded, checking for existing token...');
+      
+      if (githubToken) {
+        showStatus('Loading CMS...', 'loading');
+        await waitForCMS();
+        initializeCMS();
+      }
+    });
   </script>
 </body>
 </html>
