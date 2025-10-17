@@ -14,10 +14,13 @@
     .logout-btn { background: #dc3545; margin-bottom: 20px; }
     .hidden { display: none; }
     .repo-info { background: #e9ecef; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    #debug { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; text-align: left; font-size: 12px; }
   </style>
 </head>
 <body>
   <div class="container">
+    <div id="debug"></div>
+    
     <div id="login-card" class="card">
       <h2>Content Manager</h2>
       <p>Manage content for Suresh Issue 123</p>
@@ -40,46 +43,43 @@
     let githubToken = null;
     let cmsInitialized = false;
 
-    // Wait for DOM to be fully loaded
-    function domReady() {
-      return new Promise((resolve) => {
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', resolve);
-        } else {
-          resolve();
-        }
-      });
+    function debug(message) {
+      console.log(message);
+      const debugEl = document.getElementById('debug');
+      if (debugEl) {
+        debugEl.innerHTML += `<div>${new Date().toISOString()}: ${message}</div>`;
+      }
     }
 
     async function checkAuth() {
       try {
-        console.log('Checking auth status...');
+        debug('Checking auth status...');
         const response = await fetch(`${BACKEND_URL}/auth/status`, {
           credentials: 'include',
           mode: 'cors'
         });
         
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+        debug(`Auth status response: ${response.status}`);
         
         const data = await response.json();
-        console.log('Auth status:', data);
+        debug(`Auth data: ${JSON.stringify(data)}`);
         
-        if (data.authenticated) {
+        if (data.authenticated && data.token) {
           githubToken = data.token;
+          debug('User is authenticated, token received');
           await initializeCMS();
         } else {
+          debug('User is not authenticated');
           showLogin();
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        debug(`Auth check failed: ${error.message}`);
         showLogin();
       }
     }
 
     function login() {
-      console.log('Starting login...');
+      debug('Starting login process...');
       window.location.href = `${BACKEND_URL}/auth/github`;
     }
 
@@ -94,25 +94,26 @@
         cmsInitialized = false;
         window.location.reload();
       } catch (error) {
-        console.error('Logout failed:', error);
+        debug(`Logout failed: ${error.message}`);
       }
     }
 
-    async function initializeCMS() {
-      // Make sure DOM is ready before initializing CMS
-      await domReady();
+    function initializeCMS() {
+      debug('Starting CMS initialization...');
       
       if (cmsInitialized) {
-        return; // Don't initialize twice
+        debug('CMS already initialized, skipping');
+        return;
       }
 
-      console.log('Initializing Decap CMS...');
-      
+      // Show CMS container, hide login
       document.getElementById('login-card').classList.add('hidden');
       document.getElementById('cms-container').classList.remove('hidden');
 
-      // Initialize Decap CMS with hardcoded repo
-      if (window.CMS) {
+      debug('DOM updated, initializing Decap CMS...');
+
+      try {
+        // Initialize Decap CMS
         window.CMS.init({
           config: {
             backend: {
@@ -140,52 +141,78 @@
           }
         });
 
-        // Override authentication to use our token
+        debug('Decap CMS init called successfully');
+
+        // Override authentication
         const gitHubBackend = window.CMS.getBackend('github');
         if (gitHubBackend && gitHubBackend.authenticate) {
           const originalAuthenticate = gitHubBackend.authenticate;
           gitHubBackend.authenticate = function() {
-            console.log('Using token for authentication');
+            debug('Using custom token for authentication');
             return Promise.resolve({ token: githubToken });
           };
+          debug('Authentication override set');
         }
 
         cmsInitialized = true;
-        console.log('Decap CMS initialized successfully');
-      } else {
-        console.error('Decap CMS not loaded');
+        debug('CMS initialization completed successfully');
+
+      } catch (error) {
+        debug(`CMS initialization error: ${error.message}`);
+        debug(`Error stack: ${error.stack}`);
       }
     }
 
     function showLogin() {
+      debug('Showing login screen');
       document.getElementById('login-card').classList.remove('hidden');
       document.getElementById('cms-container').classList.add('hidden');
     }
 
-    // Handle auth callback and initialize
-    async function init() {
-      await domReady();
+    // Main initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      debug('DOM fully loaded');
       
       const urlParams = new URLSearchParams(window.location.search);
-      console.log('URL params:', urlParams.toString());
+      const authStatus = urlParams.get('auth');
       
-      if (urlParams.get('auth') === 'success') {
-        console.log('Auth success, checking status...');
+      debug(`URL auth parameter: ${authStatus}`);
+      debug(`Full URL: ${window.location.href}`);
+
+      if (authStatus === 'success') {
+        debug('Auth success detected, clearing URL and checking auth status');
+        // Clear the auth parameter from URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        await checkAuth();
-      } else if (urlParams.get('auth') === 'error') {
-        console.log('Auth error');
+        
+        // Check auth status after a brief delay to ensure session is set
+        setTimeout(() => {
+          checkAuth();
+        }, 500);
+        
+      } else if (authStatus === 'error') {
+        debug('Auth error detected');
         alert('Authentication failed. Please try again.');
         window.history.replaceState({}, document.title, window.location.pathname);
         showLogin();
       } else {
-        console.log('No auth params, checking status...');
-        await checkAuth();
+        debug('No auth parameters, checking current auth status');
+        checkAuth();
+      }
+    });
+
+    // Fallback in case DOMContentLoaded already fired
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      debug('Document already ready, starting initialization');
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('auth') === 'success') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+          checkAuth();
+        }, 500);
+      } else {
+        checkAuth();
       }
     }
-
-    // Start the application
-    init().catch(console.error);
   </script>
 </body>
 </html>
