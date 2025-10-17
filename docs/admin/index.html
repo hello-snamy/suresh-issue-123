@@ -35,23 +35,40 @@
 
   <script>
     const BACKEND_URL = 'http://173.249.49.45:9050';
-    const REPO_OWNER = 'hello-snamy';
-    const REPO_NAME = 'suresh-issue-123';
     const REPO_FULL_NAME = 'hello-snamy/suresh-issue-123';
     
     let githubToken = null;
+    let cmsInitialized = false;
+
+    // Wait for DOM to be fully loaded
+    function domReady() {
+      return new Promise((resolve) => {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', resolve);
+        } else {
+          resolve();
+        }
+      });
+    }
 
     async function checkAuth() {
       try {
+        console.log('Checking auth status...');
         const response = await fetch(`${BACKEND_URL}/auth/status`, {
-          credentials: 'include'
+          credentials: 'include',
+          mode: 'cors'
         });
         
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Auth status:', data);
         
         if (data.authenticated) {
           githubToken = data.token;
-          initializeCMS();
+          await initializeCMS();
         } else {
           showLogin();
         }
@@ -62,6 +79,7 @@
     }
 
     function login() {
+      console.log('Starting login...');
       window.location.href = `${BACKEND_URL}/auth/github`;
     }
 
@@ -69,54 +87,74 @@
       try {
         await fetch(`${BACKEND_URL}/auth/logout`, {
           method: 'POST',
-          credentials: 'include'
+          credentials: 'include',
+          mode: 'cors'
         });
         githubToken = null;
+        cmsInitialized = false;
         window.location.reload();
       } catch (error) {
         console.error('Logout failed:', error);
       }
     }
 
-    function initializeCMS() {
+    async function initializeCMS() {
+      // Make sure DOM is ready before initializing CMS
+      await domReady();
+      
+      if (cmsInitialized) {
+        return; // Don't initialize twice
+      }
+
+      console.log('Initializing Decap CMS...');
+      
       document.getElementById('login-card').classList.add('hidden');
       document.getElementById('cms-container').classList.remove('hidden');
 
       // Initialize Decap CMS with hardcoded repo
-      window.CMS.init({
-        config: {
-          backend: {
-            name: 'github',
-            repo: REPO_FULL_NAME,
-            branch: 'main'
-          },
-          load_config_file: false,
-          media_folder: "images/uploads",
-          public_folder: "/images/uploads",
-          collections: [
-            {
-              name: "blog",
-              label: "Blog Posts",
-              folder: "posts",
-              create: true,
-              slug: "{{slug}}",
-              fields: [
-                { label: "Title", name: "title", widget: "string" },
-                { label: "Publish Date", name: "date", widget: "datetime" },
-                { label: "Body", name: "body", widget: "markdown" }
-              ]
-            }
-          ]
-        }
-      });
+      if (window.CMS) {
+        window.CMS.init({
+          config: {
+            backend: {
+              name: 'github',
+              repo: REPO_FULL_NAME,
+              branch: 'main'
+            },
+            load_config_file: false,
+            media_folder: "images/uploads",
+            public_folder: "/images/uploads",
+            collections: [
+              {
+                name: "blog",
+                label: "Blog Posts",
+                folder: "posts",
+                create: true,
+                slug: "{{slug}}",
+                fields: [
+                  { label: "Title", name: "title", widget: "string" },
+                  { label: "Publish Date", name: "date", widget: "datetime" },
+                  { label: "Body", name: "body", widget: "markdown" }
+                ]
+              }
+            ]
+          }
+        });
 
-      // Override authentication to use our token
-      const gitHubBackend = window.CMS.getBackend('github');
-      const originalAuthenticate = gitHubBackend.authenticate;
-      
-      gitHubBackend.authenticate = function() {
-        return Promise.resolve({ token: githubToken });
-      };
+        // Override authentication to use our token
+        const gitHubBackend = window.CMS.getBackend('github');
+        if (gitHubBackend && gitHubBackend.authenticate) {
+          const originalAuthenticate = gitHubBackend.authenticate;
+          gitHubBackend.authenticate = function() {
+            console.log('Using token for authentication');
+            return Promise.resolve({ token: githubToken });
+          };
+        }
+
+        cmsInitialized = true;
+        console.log('Decap CMS initialized successfully');
+      } else {
+        console.error('Decap CMS not loaded');
+      }
     }
 
     function showLogin() {
@@ -124,17 +162,30 @@
       document.getElementById('cms-container').classList.add('hidden');
     }
 
-    // Handle auth callback
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('auth') === 'success') {
-      window.history.replaceState({}, document.title, '/admin/');
-      setTimeout(checkAuth, 1000);
-    } else if (urlParams.get('auth') === 'error') {
-      alert('Authentication failed. Please try again.');
-      window.history.replaceState({}, document.title, '/admin/');
+    // Handle auth callback and initialize
+    async function init() {
+      await domReady();
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      console.log('URL params:', urlParams.toString());
+      
+      if (urlParams.get('auth') === 'success') {
+        console.log('Auth success, checking status...');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        await checkAuth();
+      } else if (urlParams.get('auth') === 'error') {
+        console.log('Auth error');
+        alert('Authentication failed. Please try again.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showLogin();
+      } else {
+        console.log('No auth params, checking status...');
+        await checkAuth();
+      }
     }
 
-    document.addEventListener('DOMContentLoaded', checkAuth);
+    // Start the application
+    init().catch(console.error);
   </script>
 </body>
 </html>
