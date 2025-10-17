@@ -206,11 +206,11 @@
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('auth') === 'success') {
         window.history.replaceState({}, document.title, window.location.pathname);
-        setTimeout(() => {
-          checkAuth();
-        }, 500);
+        // setTimeout(() => {
+        //   checkAuth();
+        // }, 500);
       } else {
-        checkAuth();
+        // checkAuth();
       }
     }
   </script>
