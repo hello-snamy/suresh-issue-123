@@ -148,11 +148,11 @@
     // Handle auth callback
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auth') === 'success') {
-      window.history.replaceState({}, document.title, '/admin/');
+      window.history.replaceState({}, document.title, 'https://hello-snamy.github.io/suresh-issue-123/admin/');
       setTimeout(checkAuth, 1000);
     } else if (urlParams.get('auth') === 'error') {
       alert('Authentication failed. Please try again.');
-      window.history.replaceState({}, document.title, '/admin/');
+      window.history.replaceState({}, document.title, 'https://hello-snamy.github.io/suresh-issue-123/admin/');
     }
 
     document.addEventListener('DOMContentLoaded', checkAuth);
