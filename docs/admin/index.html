@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Content Manager</title>
-  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #f6f8fa; }
     .container { max-width: 600px; margin: 50px auto; text-align: center; }
@@ -12,7 +11,6 @@
     .btn { background: #2ea44f; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
     .btn:hover { background: #2c974b; }
     .hidden { display: none; }
-    #status { margin: 20px 0; padding: 10px; border-radius: 4px; }
     .loading { background: #fff3cd; color: #856404; }
     .success { background: #d1edff; color: #004085; }
     .error { background: #f8d7da; color: #721c24; }
@@ -38,7 +36,7 @@
     const REPO = 'hello-snamy/suresh-issue-123';
     let githubToken = null;
     let popup = null;
-    let cmsReady = false;
+    let cmsLoaded = false;
 
     function showStatus(message, type = 'loading') {
       const statusEl = document.getElementById('status');
@@ -51,20 +49,37 @@
       document.getElementById('status').style.display = 'none';
     }
 
-    // Wait for Decap CMS to load
-    function waitForCMS() {
-      return new Promise((resolve) => {
-        const checkCMS = () => {
-          if (window.CMS && window.CMS.init) {
-            console.log('Decap CMS loaded successfully');
-            cmsReady = true;
-            resolve();
-          } else {
-            console.log('Waiting for Decap CMS to load...');
-            setTimeout(checkCMS, 100);
-          }
+    // Load Decap CMS dynamically
+    function loadDecapCMS() {
+      return new Promise((resolve, reject) => {
+        if (window.CMS && window.CMS.init) {
+          console.log('Decap CMS already loaded');
+          resolve();
+          return;
+        }
+
+        showStatus('Loading CMS...', 'loading');
+        
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js';
+        script.onload = () => {
+          console.log('Decap CMS script loaded');
+          // Wait a bit for CMS to initialize
+          setTimeout(() => {
+            if (window.CMS && window.CMS.init) {
+              console.log('Decap CMS initialized successfully');
+              cmsLoaded = true;
+              resolve();
+            } else {
+              reject(new Error('CMS not available after script load'));
+            }
+          }, 500);
         };
-        checkCMS();
+        script.onerror = () => {
+          reject(new Error('Failed to load Decap CMS script'));
+        };
+        
+        document.head.appendChild(script);
       });
     }
 
@@ -82,9 +97,16 @@
         console.log('Token received:', githubToken);
         showStatus('Authentication successful! Loading CMS...', 'success');
         
-        // Wait for CMS to be ready, then initialize
-        await waitForCMS();
-        initializeCMS();
+        try {
+          // Load CMS if not already loaded
+          if (!cmsLoaded) {
+            await loadDecapCMS();
+          }
+          initializeCMS();
+        } catch (error) {
+          console.error('Failed to load CMS:', error);
+          showStatus('Failed to load CMS: ' + error.message, 'error');
+        }
       }
       else if (event.data === 'authorization:github:error') {
         showStatus('Authentication failed. Please try again.', 'error');
@@ -127,7 +149,7 @@
       }
 
       if (!window.CMS || !window.CMS.init) {
-        showStatus('CMS not loaded yet. Please wait...', 'error');
+        showStatus('CMS not loaded. Please try refreshing the page.', 'error');
         return;
       }
 
@@ -164,14 +186,27 @@
           }
         });
 
+        console.log('Decap CMS init called successfully');
+
         // Override authentication to use our token
-        const gitHubBackend = window.CMS.getBackend('github');
-        if (gitHubBackend && gitHubBackend.authenticate) {
-          gitHubBackend.authenticate = function() {
-            console.log('Providing token to Decap CMS');
-            return Promise.resolve({ token: githubToken });
-          };
-        }
+        // Wait a moment for the backend to be registered
+        setTimeout(() => {
+          try {
+            const gitHubBackend = window.CMS.getBackend('github');
+            if (gitHubBackend && gitHubBackend.authenticate) {
+              const originalAuthenticate = gitHubBackend.authenticate;
+              gitHubBackend.authenticate = function() {
+                console.log('Providing token to Decap CMS');
+                return Promise.resolve({ token: githubToken });
+              };
+              console.log('Authentication override set');
+            } else {
+              console.warn('GitHub backend not found, authentication may not work');
+            }
+          } catch (error) {
+            console.error('Error setting auth override:', error);
+          }
+        }, 1000);
 
         console.log('Decap CMS initialized successfully');
         
@@ -181,15 +216,12 @@
       }
     }
 
-    // Initialize when page loads if we already have a token
-    document.addEventListener('DOMContentLoaded', async function() {
-      console.log('DOM loaded, checking for existing token...');
-      
-      if (githubToken) {
-        showStatus('Loading CMS...', 'loading');
-        await waitForCMS();
-        initializeCMS();
-      }
+    // Pre-load CMS when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, pre-loading Decap CMS...');
+      loadDecapCMS().catch(error => {
+        console.log('CMS pre-load failed, will load on demand:', error);
+      });
     });
   </script>
 </body>
