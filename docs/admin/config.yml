@@ -2,7 +2,7 @@ backend:
   name: github
   repo: hello-snamy/suresh-issue-123
   branch: main
-  auth_type: token
+  # auth_type: token  # Remove this line if present
 
 media_folder: "images/uploads"
 public_folder: "/images/uploads"
