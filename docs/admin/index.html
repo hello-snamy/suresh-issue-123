@@ -1,12 +1,136 @@
+<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="noindex" />
-    <title>Content Manager</title>
-  </head>
-  <body>
-    <!-- Include the script that builds the page and powers Decap CMS -->
-    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Manager</title>
+  
+  <!-- Decap CMS -->
+  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  
+  <script>
+    const BACKEND_URL = 'https://your-backend.herokuapp.com';
+    
+    async function checkAuth() {
+      try {
+        showMessage('Checking authentication...', 'info');
+        
+        const response = await fetch(`${BACKEND_URL}/auth/status`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.authenticated) {
+          showMessage(`Authenticated as ${data.user}`, 'success');
+          await verifyRepositoryAccess();
+          initCMS();
+          document.getElementById('login-section').style.display = 'none';
+          document.getElementById('cms-section').style.display = 'block';
+        } else {
+          showMessage('Please login to continue', 'info');
+          document.getElementById('login-section').style.display = 'block';
+          document.getElementById('cms-section').style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        showMessage('Authentication service unavailable', 'error');
+        document.getElementById('login-section').style.display = 'block';
+      }
+    }
+    
+    async function verifyRepositoryAccess() {
+      try {
+        const repoOwner = 'backend-account-name'; // Change to your content repo owner
+        const repoName = 'content-repo-name';     // Change to your content repo name
+        
+        const response = await fetch(`${BACKEND_URL}/api/repo/verify?owner=${repoOwner}&repo=${repoName}`, {
+          credentials: 'include'
+        });
+        
+        const result = await response.json();
+        if (!result.accessible) {
+          showMessage('No access to content repository. Please check permissions.', 'error');
+        }
+      } catch (error) {
+        console.error('Repo verification failed:', error);
+      }
+    }
+    
+    function login() {
+      window.location.href = `${BACKEND_URL}/auth/github`;
+    }
+    
+    async function logout() {
+      try {
+        await fetch(`${BACKEND_URL}/auth/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        window.location.reload();
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+    }
+    
+    function initCMS() {
+      // Decap CMS will automatically initialize with our proxy backend
+      console.log('Decap CMS initialized');
+    }
+    
+    function showMessage(message, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = message;
+      messageDiv.className = `message ${type}`;
+      messageDiv.style.display = 'block';
+      
+      setTimeout(() => {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+    
+    // Handle auth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth') === 'success') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      showMessage('Successfully authenticated!', 'success');
+      setTimeout(checkAuth, 1000);
+    } else if (urlParams.get('auth') === 'error') {
+      const message = urlParams.get('message') || 'Authentication failed';
+      showMessage(`Authentication error: ${message}`, 'error');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    document.addEventListener('DOMContentLoaded', checkAuth);
+  </script>
+  
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f6f8fa; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .login-section { text-align: center; padding: 50px 20px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .login-btn { background: #24292e; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background 0.2s; }
+    .login-btn:hover { background: #0366d6; }
+    .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-bottom: 20px; }
+    .message { padding: 12px; border-radius: 4px; margin-bottom: 20px; display: none; }
+    .message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .message.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="message" class="message"></div>
+    
+    <div id="login-section" class="login-section" style="display: none;">
+      <h2>Content Manager Login</h2>
+      <p>This CMS manages content stored in the backend account repository.</p>
+      <p>You'll need write access to the content repository.</p>
+      <button class="login-btn" onclick="login()">Login with GitHub</button>
+    </div>
+    
+    <div id="cms-section" style="display: none;">
+      <button class="logout-btn" onclick="logout()">Logout</button>
+      <div id="nc-root"></div>
+    </div>
+  </div>
+</body>
 </html>
