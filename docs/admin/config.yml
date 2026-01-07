@@ -3,7 +3,7 @@ backend:
   repo: hello-snamy/suresh-issue-123
   branch: main
   base_url: https://suresh-issue-82.dcycleproject.org
-  auth_endpoint: /auth/github/repo/695a7bf19d0c2afc3eaeba0e
+  auth_endpoint: /auth/github/repo/695e49a2c8afd5f2e6db9cc3
 media_folder: static/uploads
 public_folder: /uploads
 collections:
